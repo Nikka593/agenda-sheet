@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google流 効率的な会議Agendaシート</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    .hidden { display: none; }
+    body { 
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #f8f9fa;
+    }
+    .form-control:focus {
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+    .btn-primary {
+      background-color: #4F46E5;
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      background-color: #4338CA;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background-color: #6B7280;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background-color: #4B5563;
+      transform: translateY(-1px);
+    }
+    .card {
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .badge {
+      padding: 0.35em 0.65em;
+      font-size: 0.75em;
+      font-weight: 700;
+      border-radius: 0.25rem;
+    }
+    .drop-shadow {
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+    }
+    .p-circle {
+      background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    }
+    .a-circle {
+      background: linear-gradient(135deg, #10B981, #059669);
+    }
+    .r-circle {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+    }
+    .input-animate {
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .input-animate:focus {
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    .tips-card {
+      border-left: 4px solid #FBBF24;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+      body {
+        background-color: white;
+      }
+    }
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 50;
+    }
+    .modal {
+      z-index: 60;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 p-4">
+  <div id="printArea" class="w-full bg-white p-6 rounded-lg shadow-lg max-w-4xl mx-auto mb-6">
+    <div class="mb-6 text-center">
+      <h1 class="text-3xl font-bold text-indigo-700 mb-2">Google流 効率的な会議Agendaシート</h1>
+      <p class="text-gray-600 text-sm italic">「何かに"YES"と言うことは、他の何かに"NO"と言っているのと同じ」</p>
+      <div class="mt-2 w-24 h-1 bg-indigo-500 mx-auto rounded-full"></div>
+    </div>
+
+    <!-- Meeting Basic Information -->
+    <div class="bg-indigo-50 p-5 rounded-lg mb-6 card">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">会議名</label>
+          <input 
+            type="text" 
+            id="meetingName"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+            placeholder="例: 週次プロジェクトレビュー"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">日付</label>
+          <input 
+            type="date" 
+            id="meetingDate"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">開始時間</label>
+          <input 
+            type="time" 
+            id="startTime"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">終了時間</label>
+          <input 
+            type="time" 
+            id="endTime"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">場所/リンク</label>
+          <input 
+            type="text" 
+            id="location"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+            placeholder="例: 会議室A / Zoom URL"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ファシリテーター</label>
+          <input 
+            type="text" 
+            id="facilitator"
+            class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate" 
+            placeholder="例: 山田太郎"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Purpose (P) -->
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <div class="p-circle text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-2 drop-shadow">P</div>
+        <h2 class="text-xl font-bold text-gray-800">目的 (Purpose)</h2>
+      </div>
+      <div class="pl-10">
+        <div class="mb-4 bg-white p-5 rounded-lg shadow-sm card">
+          <label class="block text-sm font-medium text-gray-700 mb-2">会議タイプ</label>
+          <div class="flex flex-wrap gap-4">
+            <label class="inline-flex items-center bg-white px-4 py-2 rounded-md border border-gray-300 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <input 
+                type="radio" 
+                class="form-radio text-indigo-600 hidden" 
+                name="meetingType" 
+                value="情報共有" 
+                checked
+              />
+              <span class="flex items-center">
+                <span class="w-4 h-4 mr-2 rounded-full border border-gray-400 flex items-center justify-center checkmark">
+                  <span class="w-2 h-2 rounded-full bg-indigo-600 hidden checkdot"></span>
+                </span>
+                <span>①情報共有</span>
+              </span>
+            </label>
+            <label class="inline-flex items-center bg-white px-4 py-2 rounded-md border border-gray-300 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <input 
+                type="radio" 
+                class="form-radio text-indigo-600 hidden" 
+                name="meetingType" 
+                value="クリエイティブ" 
+              />
+              <span class="flex items-center">
+                <span class="w-4 h-4 mr-2 rounded-full border border-gray-400 flex items-center justify-center checkmark">
+                  <span class="w-2 h-2 rounded-full bg-indigo-600 hidden checkdot"></span>
+                </span>
+                <span>②クリエイティブ</span>
+              </span>
+            </label>
+            <label class="inline-flex items-center bg-white px-4 py-2 rounded-md border border-gray-300 hover:bg-indigo-50 transition-colors cursor-pointer">
+              <input 
+                type="radio" 
+                class="form-radio text-indigo-600 hidden" 
+                name="meetingType" 
+                value="意思決定" 
+              />
+              <span class="flex items-center">
+                <span class="w-4 h-4 mr-2 rounded-full border border-gray-400 flex items-center justify-center checkmark">
+                  <span class="w-2 h-2 rounded-full bg-indigo-600 hidden checkdot"></span>
+                </span>
+                <span>③意思決定</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-lg shadow-sm card">
+          <label class="block text-sm font-medium text-gray-700 mb-2">会議の目的詳細</label>
+          <textarea 
+            id="purposeDetails"
+            class="w-full p-3 border border-gray-300 rounded-md focus:outline-none input-animate h-24" 
+            placeholder="例: チームメンバーに四半期の売上結果を共有し、理解を促進する。"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agenda (A) -->
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <div class="a-circle text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-2 drop-shadow">A</div>
+        <h2 class="text-xl font-bold text-gray-800">議題 (Agenda)</h2>
+        <div class="ml-auto flex items-center">
+          <span class="bg-green-100 text-green-800 py-1 px-3 rounded-full text-sm">合計時間: <span id="totalTime" class="font-bold">10</span>分</span>
+        </div>
+      </div>
+      <div class="pl-10">
+        <div class="bg-white p-5 rounded-lg shadow-sm card">
+          <div class="bg-gray-50 p-3 rounded-lg mb-2">
+            <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-1">
+              <div class="col-span-5">議題</div>
+              <div class="col-span-2">担当者</div>
+              <div class="col-span-1">時間(分)</div>
+              <div class="col-span-3">資料/準備</div>
+              <div class="col-span-1"></div>
+            </div>
+          </div>
+          <div id="agendaItems">
+            <!-- Agenda items will be added here -->
+          </div>
+          <button 
+            id="addAgendaBtn"
+            class="mt-3 flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            <i class="fas fa-plus-circle mr-1"></i>
+            議題を追加
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result (R) -->
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <div class="r-circle text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-2 drop-shadow">R</div>
+        <h2 class="text-xl font-bold text-gray-800">結果 (Result)</h2>
+      </div>
+      <div class="pl-10">
+        <div class="mb-4 bg-white p-5 rounded-lg shadow-sm card">
+          <label class="block text-sm font-medium text-gray-700 mb-2">期待される成果</label>
+          <textarea 
+            id="expectedResult"
+            class="w-full p-3 border border-gray-300 rounded-md focus:outline-none input-animate h-24" 
+            placeholder="この会議が成功したと言えるのはどのような状態か？具体的な成果を記載してください。"
+          ></textarea>
+        </div>
+        <div class="bg-white p-5 rounded-lg shadow-sm card">
+          <label class="block text-sm font-medium text-gray-700 mb-2">アクションアイテム</label>
+          <div class="bg-gray-50 p-3 rounded-lg mb-2">
+            <div class="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 mb-1">
+              <div class="col-span-5">タスク</div>
+              <div class="col-span-2">担当者</div>
+              <div class="col-span-2">期限</div>
+              <div class="col-span-2">ステータス</div>
+              <div class="col-span-1"></div>
+            </div>
+          </div>
+          <div id="actionItems">
+            <!-- Action items will be added here -->
+          </div>
+          <button 
+            id="addActionBtn"
+            class="mt-3 flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            <i class="fas fa-plus-circle mr-1"></i>
+            アクションアイテムを追加
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Participants -->
+    <div class="mb-6">
+      <div class="flex items-center mb-3">
+        <div class="bg-gray-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-2 drop-shadow">
+          <i class="fas fa-users"></i>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800">参加者</h2>
+      </div>
+      <div class="pl-10">
+        <div class="bg-white p-5 rounded-lg shadow-sm card">
+          <textarea 
+            id="participants"
+            class="w-full p-3 border border-gray-300 rounded-md focus:outline-none input-animate h-24" 
+            placeholder="参加者の名前とメールアドレスを入力（「これで大丈夫かと不安になるくらいの人数」にとどめましょう）"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom tip -->
+    <div class="tips-card bg-amber-50 p-5 rounded-lg mb-6">
+      <h3 class="text-sm font-bold text-amber-900 mb-2 flex items-center">
+        <i class="fas fa-lightbulb text-amber-500 mr-2"></i>
+        Google流 効率的な会議のコツ
+      </h3>
+      <ul class="mt-2 text-sm text-amber-800 space-y-2">
+        <li class="flex items-start">
+          <i class="fas fa-check-circle text-amber-500 mt-1 mr-2"></i>
+          <span>参加者に2日前までに議題と準備すべき資料を送る</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fas fa-check-circle text-amber-500 mt-1 mr-2"></i>
+          <span>会議は時間ぴったりに始め、短く終わらせる</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fas fa-check-circle text-amber-500 mt-1 mr-2"></i>
+          <span>必要な議題がない場合は会議をキャンセルする</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fas fa-check-circle text-amber-500 mt-1 mr-2"></i>
+          <span>毎週の会議では前回のアクションアイテムの進捗を必ず確認する</span>
+        </li>
+        <li class="flex items-start">
+          <i class="fas fa-check-circle text-amber-500 mt-1 mr-2"></i>
+          <span>全員の時間を大切に扱うことが素晴らしい会議の条件</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Save/Export Buttons -->
+  <div class="no-print w-full max-w-4xl mx-auto flex justify-end space-x-3 mb-10">
+    <button id="saveBtn" class="btn-primary px-4 py-2 bg-indigo-600 text-white rounded-md flex items-center">
+      <i class="fas fa-save mr-2"></i> 保存
+    </button>
+    <button id="printBtn" class="btn-secondary px-4 py-2 bg-gray-600 text-white rounded-md flex items-center">
+      <i class="fas fa-print mr-2"></i> 印刷/PDF
+    </button>
+    <button id="exportDocBtn" class="btn-secondary px-4 py-2 bg-blue-600 text-white rounded-md flex items-center">
+      <i class="fas fa-file-word mr-2"></i> Word形式
+    </button>
+  </div>
+
+  <!-- Save Format Modal -->
+  <div id="saveModal" class="fixed inset-0 overlay hidden flex items-center justify-center">
+    <div class="modal bg-white rounded-lg p-6 max-w-md w-full">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-900">ファイル形式を選択</h3>
+        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer flex items-center" data-format="json">
+          <div class="bg-blue-100 text-blue-700 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+            <i class="fas fa-file-code"></i>
+          </div>
+          <div>
+            <p class="font-medium">JSONファイル</p>
+            <p class="text-sm text-gray-600">後で再読み込み可能なデータファイル</p>
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer flex items-center" data-format="pdf">
+          <div class="bg-red-100 text-red-700 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+            <i class="fas fa-file-pdf"></i>
+          </div>
+          <div>
+            <p class="font-medium">PDFファイル</p>
+            <p class="text-sm text-gray-600">どのデバイスでも表示可能な標準フォーマット</p>
+          </div>
+        </div>
+        <div class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer flex items-center" data-format="html">
+          <div class="bg-green-100 text-green-700 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+            <i class="fas fa-file-word"></i>
+          </div>
+          <div>
+            <p class="font-medium">HTML/Word互換</p>
+            <p class="text-sm text-gray-600">Wordで開くことができるHTMLファイル</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize data
+    let agendaItems = [
+      { id: 1, topic: '', owner: '', duration: 5, materials: '' },
+      { id: 2, topic: '', owner: '', duration: 5, materials: '' }
+    ];
+    
+    let actionItems = [
+      { id: 1, task: '', owner: '', dueDate: '', status: '未着手' }
+    ];
+    
+    // DOM elements
+    const agendaItemsContainer = document.getElementById('agendaItems');
+    const actionItemsContainer = document.getElementById('actionItems');
+    const totalTimeEl = document.getElementById('totalTime');
+    const addAgendaBtn = document.getElementById('addAgendaBtn');
+    const addActionBtn = document.getElementById('addActionBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const printBtn = document.getElementById('printBtn');
+    const exportDocBtn = document.getElementById('exportDocBtn');
+    const meetingTypeRadios = document.getElementsByName('meetingType');
+    const purposeDetailsEl = document.getElementById('purposeDetails');
+    const saveModal = document.getElementById('saveModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    // Custom radio buttons
+    document.querySelectorAll('input[type=radio][name=meetingType]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        // Reset all
+        document.querySelectorAll('.checkdot').forEach(dot => dot.classList.add('hidden'));
+        
+        // Show selected
+        if (this.checked) {
+          this.parentElement.querySelector('.checkdot').classList.remove('hidden');
+          
+          // Update placeholder
+          const value = this.value;
+          let placeholder = '';
+          
+          if (value === '情報共有') {
+            placeholder = '例: チームメンバーに四半期の売上結果を共有し、理解を促進する。';
+          } else if (value === 'クリエイティブ') {
+            placeholder = '例: 新製品のマーケティング戦略についてアイデアを出し合う。';
+          } else if (value === '意思決定') {
+            placeholder = '例: 新しいプロジェクト計画の承認を得る。';
+          }
+          
+          purposeDetailsEl.placeholder = placeholder;
+        }
+      });
+    });
+    
+    // Show the dot for the default selection
+    document.querySelector('input[type=radio][name=meetingType]:checked')
+      .parentElement.querySelector('.checkdot').classList.remove('hidden');
+    
+    // Meeting type change handler
+    meetingTypeRadios.forEach(radio => {
+      radio.addEventListener('change', function() {
+        const value = this.value;
+        let placeholder = '';
+        
+        if (value === '情報共有') {
+          placeholder = '例: チームメンバーに四半期の売上結果を共有し、理解を促進する。';
+        } else if (value === 'クリエイティブ') {
+          placeholder = '例: 新製品のマーケティング戦略についてアイデアを出し合う。';
+        } else if (value === '意思決定') {
+          placeholder = '例: 新しいプロジェクト計画の承認を得る。';
+        }
+        
+        purposeDetailsEl.placeholder = placeholder;
+      });
+    });
+    
+    // Initial render
+    renderAgendaItems();
+    renderActionItems();
+    updateTotalTime();
+    
+    // Event listeners
+    addAgendaBtn.addEventListener('click', addAgendaItem);
+    addActionBtn.addEventListener('click', addActionItem);
+    saveBtn.addEventListener('click', () => saveModal.classList.remove('hidden'));
+    printBtn.addEventListener('click', printAgenda);
+    exportDocBtn.addEventListener('click', exportToWord);
+    closeModalBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
+    
+    // Save format selection
+    document.querySelectorAll('[data-format]').forEach(element => {
+      element.addEventListener('click', function() {
+        const format = this.getAttribute('data-format');
+        saveModal.classList.add('hidden');
+        
+        if (format === 'json') {
+          saveAsJSON();
+        } else if (format === 'pdf') {
+          printAgenda();
+        } else if (format === 'html') {
+          exportToWord();
+        }
+      });
+    });
+    
+    // Functions
+    function renderAgendaItems() {
+      agendaItemsContainer.innerHTML = '';
+      
+      agendaItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'grid grid-cols-12 gap-2 mb-2 fade-in';
+        itemEl.innerHTML = `
+          <div class="col-span-5">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate agenda-topic" 
+              placeholder="議題を入力"
+              value="${item.topic}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-2">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate agenda-owner" 
+              placeholder="担当者"
+              value="${item.owner}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-1">
+            <input 
+              type="number" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate agenda-duration" 
+              min="1"
+              value="${item.duration}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-3">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate agenda-materials" 
+              placeholder="必要資料/準備"
+              value="${item.materials}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-1 flex items-center justify-center">
+            <button 
+              class="text-red-500 hover:text-red-700 transition-colors remove-agenda-btn"
+              data-id="${item.id}"
+            >
+              <i class="fas fa-times-circle"></i>
+            </button>
+          </div>
+        `;
+        
+        agendaItemsContainer.appendChild(itemEl);
+      });
+      
+      // Add event listeners to inputs and remove buttons
+      document.querySelectorAll('.agenda-topic').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = agendaItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            agendaItems[index].topic = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.agenda-owner').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = agendaItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            agendaItems[index].owner = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.agenda-duration').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = agendaItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            agendaItems[index].duration = parseInt(this.value) || 0;
+            updateTotalTime();
+          }
+        });
+      });
+      
+      document.querySelectorAll('.agenda-materials').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = agendaItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            agendaItems[index].materials = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.remove-agenda-btn').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = parseInt(this.dataset.id);
+          removeAgendaItem(id);
+        });
+      });
+    }
+    
+    function renderActionItems() {
+      actionItemsContainer.innerHTML = '';
+      
+      actionItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'grid grid-cols-12 gap-2 mb-2 fade-in';
+        itemEl.innerHTML = `
+          <div class="col-span-5">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate action-task" 
+              placeholder="タスクを入力"
+              value="${item.task}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-2">
+            <input 
+              type="text" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate action-owner" 
+              placeholder="担当者"
+              value="${item.owner}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-2">
+            <input 
+              type="date" 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate action-due-date"
+              value="${item.dueDate}"
+              data-id="${item.id}"
+            />
+          </div>
+          <div class="col-span-2">
+            <select 
+              class="w-full p-2 border border-gray-300 rounded-md focus:outline-none input-animate action-status"
+              data-id="${item.id}"
+            >
+              <option value="未着手" ${item.status === '未着手' ? 'selected' : ''}>未着手</option>
+              <option value="進行中" ${item.status === '進行中' ? 'selected' : ''}>進行中</option>
+              <option value="完了" ${item.status === '完了' ? 'selected' : ''}>完了</option>
+            </select>
+          </div>
+          <div class="col-span-1 flex items-center justify-center">
+            <button 
+              class="text-red-500 hover:text-red-700 transition-colors remove-action-btn"
+              data-id="${item.id}"
+            >
+              <i class="fas fa-times-circle"></i>
+            </button>
+          </div>
+        `;
+        
+        actionItemsContainer.appendChild(itemEl);
+      });
+      
+      // Add event listeners to inputs and remove buttons
+      document.querySelectorAll('.action-task').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = actionItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            actionItems[index].task = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.action-owner').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = actionItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            actionItems[index].owner = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.action-due-date').forEach(el => {
+        el.addEventListener('input', function() {
+          const id = parseInt(this.dataset.id);
+          const index = actionItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            actionItems[index].dueDate = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.action-status').forEach(el => {
+        el.addEventListener('change', function() {
+          const id = parseInt(this.dataset.id);
+          const index = actionItems.findIndex(item => item.id === id);
+          if (index !== -1) {
+            actionItems[index].status = this.value;
+          }
+        });
+      });
+      
+      document.querySelectorAll('.remove-action-btn').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = parseInt(this.dataset.id);
+          removeActionItem(id);
+        });
+      });
+    }
+    
+    function addAgendaItem() {
+      const newId = agendaItems.length > 0 ? Math.max(...agendaItems.map(item => item.id)) + 1 : 1;
+      agendaItems.push({ id: newId, topic: '', owner: '', duration: 5, materials: '' });
+      renderAgendaItems();
+      updateTotalTime();
+    }
+    
+    function removeAgendaItem(id) {
+      agendaItems = agendaItems.filter(item => item.id !== id);
+      renderAgendaItems();
+      updateTotalTime();
+    }
+    
+    function addActionItem() {
+      const newId = actionItems.length > 0 ? Math.max(...actionItems.map(item => item.id)) + 1 : 1;
+      actionItems.push({ id: newId, task: '', owner: '', dueDate: '', status: '未着手' });
+      renderActionItems();
+    }
+    
+    function removeActionItem(id) {
+      actionItems = actionItems.filter(item => item.id !== id);
+      renderActionItems();
+    }
+    
+    function updateTotalTime() {
+      const total = agendaItems.reduce((total, item) => total + (parseInt(item.duration) || 0), 0);
+      totalTimeEl.textContent = total;
+    }
+    
+    function saveAsJSON() {
+      const meetingData = getMeetingData();
+      
+      const dataStr = JSON.stringify(meetingData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataUrl = URL.createObjectURL(dataBlob);
+      
+      const meetingName = meetingData.meetingName || '会議';
+      const downloadLink = document.createElement('a');
+      downloadLink.href = dataUrl;
+      downloadLink.download = `${meetingName}_アジェンダ.json`;
+      downloadLink.click();
+      
+      showNotification('JSONファイルとして保存しました！');
+    }
+    
+    function printAgenda() {
+      window.print();
+    }
+    
+    function exportToWord() {
+      // Get all CSS from current page
+      let cssLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map(link => link.outerHTML)
+        .join('');
+      
+      // Get styles
+      let styles = Array.from(document.querySelectorAll('style'))
+        .map(style => style.outerHTML)
+        .join('');
+      
+      // Clone current content
+      const printArea = document.getElementById('printArea');
+      const contentClone = printArea.cloneNode(true);
+      
+      // Remove unwanted elements for export
+      Array.from(contentClone.querySelectorAll('.no-print')).forEach(el => el.remove());
+      
+      // Create HTML document
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Google流 効率的な会議Agendaシート</title>
+          ${cssLinks}
+          ${styles}
+          <style>
+            body { padding: 20px; }
+          </style>
+        </head>
+        <body>
+          ${contentClone.outerHTML}
+        </body>
+        </html>
+      `;
+      
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const meetingName = document.getElementById('meetingName').value || '会議';
+      
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = `${meetingName}_アジェンダ.html`;
+      downloadLink.click();
+      
+      showNotification('Word互換HTMLファイルとして保存しました！<br>Wordで開く場合は、ファイルを右クリック→「プログラムから開く」→「Word」を選択してください。');
+    }
+    
+    function getMeetingData() {
+      return {
+        meetingName: document.getElementById('meetingName').value,
+        meetingDate: document.getElementById('meetingDate').value,
+        startTime: document.getElementById('startTime').value,
+        endTime: document.getElementById('endTime').value,
+        location: document.getElementById('location').value,
+        facilitator: document.getElementById('facilitator').value,
+        meetingType: Array.from(meetingTypeRadios).find(radio => radio.checked)?.value || '情報共有',
+        purposeDetails: document.getElementById('purposeDetails').value,
+        expectedResult: document.getElementById('expectedResult').value,
+        participants: document.getElementById('participants').value,
+        agendaItems,
+        actionItems
+      };
+    }
+    
+    function showNotification(message) {
+      const notification = document.createElement('div');
+      notification.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg fade-in';
+      notification.innerHTML = `
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-check-circle text-green-500"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm">${message}</p>
+          </div>
+          <div class="ml-auto pl-3">
+            <button class="text-green-500 hover:text-green-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Close button
+      notification.querySelector('button').addEventListener('click', () => {
+        notification.remove();
+      });
+      
+      // Auto close after 5 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 5000);
+    }
+    
+    // Set today's date
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('meetingDate').value = today;
+    });
+  </script>
+</body>
+</html>
