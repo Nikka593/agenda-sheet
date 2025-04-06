@@ -1866,3 +1866,136 @@
           // Format date
           const dateObj = new Date(meeting.meetingDate);
           const dateOptions = { month: 'short', day: 'numeric', weekday:
+          // Format date
+          const dateObj = new Date(meeting.meetingDate);
+          const dateOptions = { month: 'short', day: 'numeric', weekday: 'short' };
+          const formattedDate = dateObj.toLocaleDateString('ja-JP', dateOptions);
+          
+          // Get tag class based on meeting type
+          const tagClass = 
+            meeting.meetingType === '情報共有' ? 'tag-info' :
+            meeting.meetingType === 'クリエイティブ' ? 'tag-creative' :
+            meeting.meetingType === '意思決定' ? 'tag-decision' : 'tag-info';
+          
+          const meetingCard = document.createElement('div');
+          meetingCard.className = 'bg-white rounded-lg shadow-sm overflow-hidden meeting-item';
+          meetingCard.innerHTML = `
+            <div class="p-5">
+              <div class="text-xs text-gray-500 mb-1">${formattedDate}</div>
+              <h3 class="text-lg font-bold text-gray-800 mb-2">${meeting.meetingName || '無題の会議'}</h3>
+              <div class="flex items-center mb-3">
+                <span class="tag ${tagClass}">${meeting.meetingType}</span>
+                <span class="text-sm text-gray-500 ml-2">${meeting.startTime || ''} ~ ${meeting.endTime || ''}</span>
+              </div>
+              <div class="flex items-center text-sm text-gray-600 mb-2">
+                <i class="fas fa-user-tie mr-2"></i>
+                <span>${meeting.facilitator || 'ファシリテーター未定'}</span>
+              </div>
+              <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                <span>${meeting.location || '場所未定'}</span>
+              </div>
+            </div>
+            <div class="border-t px-5 py-3 bg-gray-50 flex justify-end">
+              <button class="text-indigo-600 hover:text-indigo-800 text-sm view-meeting-btn" data-id="${meeting.id}">
+                <i class="fas fa-eye mr-1"></i> 詳細
+              </button>
+            </div>
+          `;
+          
+          weekMeetingsContainer.appendChild(meetingCard);
+        });
+      }
+      
+      // Add event listeners to view buttons
+      document.querySelectorAll('.view-meeting-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = parseInt(this.dataset.id);
+          viewMeetingDetails(id);
+        });
+      });
+      
+      // Update statistics
+      document.getElementById('totalMeetingsCount').textContent = meetings.length;
+      
+      // This month's meetings count
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+      
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const endOfMonthStr = endOfMonth.toISOString().split('T')[0];
+      
+      const monthMeetings = meetings.filter(m => 
+        m.meetingDate >= startOfMonthStr && m.meetingDate <= endOfMonthStr
+      );
+      
+      document.getElementById('monthMeetingsCount').textContent = monthMeetings.length;
+      
+      // Average meeting time
+      let totalDuration = 0;
+      let meetingsWithDuration = 0;
+      
+      meetings.forEach(meeting => {
+        if (meeting.agendaItems && meeting.agendaItems.length > 0) {
+          const duration = meeting.agendaItems.reduce((total, item) => total + (parseInt(item.duration) || 0), 0);
+          if (duration > 0) {
+            totalDuration += duration;
+            meetingsWithDuration++;
+          }
+        }
+      });
+      
+      const averageDuration = meetingsWithDuration > 0 ? Math.round(totalDuration / meetingsWithDuration) : 0;
+      document.getElementById('averageMeetingTime').textContent = `${averageDuration}分`;
+    }
+    
+    function exportAllMeetings() {
+      if (meetings.length === 0) {
+        showNotification('エクスポートする会議データがありません', 'error');
+        return;
+      }
+      
+      const dataStr = JSON.stringify(meetings, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const dataUrl = URL.createObjectURL(dataBlob);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const downloadLink = document.createElement('a');
+      downloadLink.href = dataUrl;
+      downloadLink.download = `会議データ_${today}.json`;
+      downloadLink.click();
+      
+      showNotification('すべての会議データをエクスポートしました');
+    }
+    
+    function confirmClearData() {
+      if (confirm('すべての会議データを削除してもよろしいですか？この操作は元に戻せません。')) {
+        meetings = [];
+        saveMeetings();
+        showNotification('すべての会議データを削除しました');
+        updateDashboard();
+        renderMeetingsList();
+      }
+    }
+    
+    // Set today's date
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('meetingDate').value = today;
+    });
+    
+    // Implement file sharing simulation
+    document.getElementById('saveToLocalBtn').addEventListener('click', function() {
+      const teamFolderPath = document.getElementById('teamFolderPath')?.value;
+      
+      if (teamFolderPath) {
+        saveCurrentMeeting();
+        showNotification(`会議データをチームと共有しました: ${teamFolderPath}`);
+      } else {
+        saveCurrentMeeting();
+        showNotification('会議データを保存しました。チーム共有するには設定タブでパスを設定してください', 'info');
+      }
+    });
+  </script>
+</body>
+</html>
